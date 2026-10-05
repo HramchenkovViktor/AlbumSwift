@@ -12,6 +12,7 @@ class ViewController: UIViewController {
 
     private let titleLabel = UILabel()
     private var albums: [Album] = []
+    private let tableView = UITableView()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,12 +27,16 @@ class ViewController: UIViewController {
     
     func setupUI() {
         view.addSubview(titleLabel)
+        view.addSubview(tableView)
         
         titleLabel.font = .systemFont(ofSize: 30, weight: .bold)
         titleLabel.numberOfLines = 0
         titleLabel.textAlignment = .center
         titleLabel.layer.cornerRadius = 10
         titleLabel.clipsToBounds = true
+        
+        tableView.dataSource = self
+        tableView.delegate = self
     }
     
     func setupConstraints() {
@@ -39,6 +44,10 @@ class ViewController: UIViewController {
             $0.top.equalTo(view.safeAreaLayoutGuide).offset(20)
             $0.leading.trailing.equalToSuperview().inset(20)
             
+        }
+        tableView.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(20)
+            $0.leading.trailing.bottom.equalToSuperview().inset(20)
         }
     }
     func loadData() async {
@@ -50,20 +59,37 @@ class ViewController: UIViewController {
             guard (200..<300).contains(httpResponse.statusCode) else { return }
             
             let loadedAlbums = try JSONDecoder().decode([Album].self, from: data)
-            
-            if let firstAlbim = albums.first {
-                await MainActor.run {
-                    self.titleLabel.text = firstAlbim.title
-                }
+
+            await MainActor.run {
+                self.albums = loadedAlbums
+                self.tableView.reloadData()
             }
+            
             
         } catch {
             print(error)
         }
     }
-   
-
-
-
 }
 
+extension ViewController: UITableViewDataSource {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        albums.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = UITableViewCell()
+        let album = albums[indexPath.row]
+        cell.textLabel?.text = album.title
+        
+        return cell
+    }
+    
+}
+
+
+
+
+extension ViewController: UITableViewDelegate {
+    
+}
