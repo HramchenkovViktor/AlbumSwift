@@ -11,12 +11,17 @@ import SnapKit
 class ViewController: UIViewController {
 
     private let titleLabel = UILabel()
+    private var albums: [Album] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         setupUI()
         setupConstraints()
+        
+        Task {
+            await loadData()
+        }
     }
     
     func setupUI() {
@@ -36,6 +41,27 @@ class ViewController: UIViewController {
             
         }
     }
+    func loadData() async {
+        guard let url = URL(string: "https://jsonplaceholder.typicode.com/albums") else { return }
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard let httpResponse = response as? HTTPURLResponse else { return }
+            guard (200..<300).contains(httpResponse.statusCode) else { return }
+            
+            let loadedAlbums = try JSONDecoder().decode([Album].self, from: data)
+            
+            if let firstAlbim = albums.first {
+                await MainActor.run {
+                    self.titleLabel.text = firstAlbim.title
+                }
+            }
+            
+        } catch {
+            print(error)
+        }
+    }
+   
 
 
 
